@@ -14,7 +14,7 @@ int main()
 {
 	HKEY hKey = HKEY_CURRENT_USER;
 	static const std::wstring desktopHwnd{ L"3735928559" };
-	const LPCWSTR subKey{ L"SOFTWARE\\WOW6432Node\\Empire Interactive\\Starsky&Hutch\\Install\\" };
+	const LPCWSTR subKey{ L"SOFTWARE\\Empire Interactive\\Starsky&Hutch\\Install\\" };
 	const LPCWSTR installPathKey{ L"InstallPath" };
 	const LPCWSTR cmdLineKey{ L"CommandLine" };
 	std::wstring currentDir{};
