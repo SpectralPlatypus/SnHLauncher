@@ -79,13 +79,16 @@ int main()
 			appCode = false;
 			break;
 		case EXIT_RESTART:
-			if (getRegEntryWide(hKey, subKey, cmdLineKey, levelArg) != ERROR_SUCCESS)
-			{
-				std::cout << "Failed to read level param, exiting launcher..." << std::endl;
-				appCode = false;
-			}
 			cmdArg = L"/HWND=" + desktopHwnd + L" /SpawnerRespawn ";
-			cmdArg.append(levelArg);
+
+			if (getRegEntryWide(hKey, subKey, cmdLineKey, levelArg) == ERROR_SUCCESS)
+			{
+				cmdArg.append(levelArg);
+			}
+			else
+			{
+				std::cout << "Failed to find CommandLine argument, skipping." << std::endl;
+			}
 			break;
 		default:
 			std::cout << "Game likely crashed, attempting to relaunch...";
@@ -96,8 +99,6 @@ int main()
 		CloseHandle(processInfo.hThread);
 	}
 
-	std::cout << "Press any key to continue..." << std::endl;
-	std::cin.get();
 	return 0;
 }
 
