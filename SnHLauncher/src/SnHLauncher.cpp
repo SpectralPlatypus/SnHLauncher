@@ -1,12 +1,16 @@
 #include <iostream>
 #include <windows.h>
 
+//#define LEVEL_OUTPUT
+
 LSTATUS getRegEntryWide(HKEY hKey, LPCWSTR lpSubKey, LPCWSTR lpValue, std::wstring& result);
+static std::wstring getNextLevelInfo(std::wstring levArg);
 
 typedef enum 
 {
 	EXIT_END = 1,
 	EXIT_LAUNCHER = -0x3F4,
+	EXIT_INSTANCE = -0x3F5,
 	EXIT_RESTART = 0x3E9,
 }ExitCodeEnum;
 
@@ -21,8 +25,7 @@ int main()
 
 	// Not really needed, it seems that game doesn't actually use it
 	//HWND desktopHwnd = GetDesktopWindow();
-
-	std::cout << "Starsky& Hutch Launcher v1.2" << std::endl;
+	std::cout << "Starsky & Hutch Launcher v1.3b" << std::endl;
 
 	if (getRegEntryWide(hKey, subKey, installPathKey, currentDir) != ERROR_SUCCESS)
 	{
@@ -35,9 +38,19 @@ int main()
 	}
 
 	std::wstring exePath = currentDir + L"\\StarskyPC.exe";
-
 	std::wcout << "Found executable: " << exePath.c_str() << std::endl;
 
+	//Check if an instance is already running, exit if so
+	const LPCWSTR mutexName{ L"minds-eye.starsky.and.hutch.mutex" };
+	auto mutexHandle = OpenMutex(MUTEX_ALL_ACCESS, FALSE, mutexName);
+	if (mutexHandle != NULL)
+	{
+		std::cout << "Another game instance detected! Exiting...\n";
+		CloseHandle(mutexHandle);
+		return 2;
+	}
+
+	// Start launcher work
 	std::wstring cmdArg{ L"/HWND=" + desktopHwnd };
 	cmdArg.append(L" /SpawnerFirstTime");
 	PROCESS_INFORMATION processInfo;
@@ -78,12 +91,21 @@ int main()
 		case EXIT_LAUNCHER:
 			appCode = false;
 			break;
+		case EXIT_INSTANCE:
+			std::cout << "Another game instance detected! Exiting...\n";
+			appCode = false;
+			break;
 		case EXIT_RESTART:
 			cmdArg = L"/HWND=" + desktopHwnd + L" /SpawnerRespawn ";
 
 			if (getRegEntryWide(hKey, subKey, cmdLineKey, levelArg) == ERROR_SUCCESS)
 			{
 				cmdArg.append(levelArg);
+#ifdef LEVEL_OUTPUT
+				std::wcout <<
+					L"Launching: " <<
+					getNextLevelInfo(levelArg).c_str() << L"\n";
+#endif
 			}
 			else
 			{
@@ -121,4 +143,21 @@ LSTATUS getRegEntryWide(HKEY hKey, LPCWSTR lpSubKey, LPCWSTR lpValue, std::wstri
 	}
 
 	return status;
+}
+
+static std::wstring getNextLevelInfo(std::wstring levArg)
+{
+	auto found = levArg.find(L"=", 0);
+	if (found != std::string::npos)
+	{
+		//Menu or Level
+		if (levArg.substr(found + 1, 2) == L"63")
+			return std::wstring{ L"Main Menu" };
+
+		wchar_t levStr[5];
+		swprintf(levStr, 5, L"S%cE%c", levArg[found + 6], levArg[found + 5]);
+
+		return std::wstring{ levStr };
+	}
+	return {};
 }
